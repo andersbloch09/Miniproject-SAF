@@ -1,0 +1,104 @@
+PROGRAM PLC_PRG
+VAR
+	state: UINT := 0;
+	timer: TON;
+	RFID: dc_ecp.Dtm425;
+	rfidData: dc_ecp.st_CPF_RfidData;
+	TCPclient: dc_ecp.TcpClientByteStream;
+	corrected_ID: UINT;
+	xmlString: STRING;
+	DateTimemeasured: DATE_AND_TIME;
+	getDateTime: DTU.GetDateAndTime;
+	DateTimeString: STRING;
+	timereceived: ARRAY[0..255] OF BYTE;
+	received: ARRAY[0..3]OF BYTE;
+	waitTimer1: REAL;
+	waitTimer2: TIME;
+END_VAR
+
+
+CASE state OF
+
+ 	0:	//Initializes the parameters 
+	IO.xQA1_RIGHT := TRUE; //starts going right
+	IO.xMB20 := FALSE; //stopper is stopping 
+	RFID.ClearError(); //checks for errors
+	TCPclient.Connect(sIP:='172.20.66.41', uiPort:=11111);//connects to server from python
+	state := 1;//moves to the next state
+
+ 	1: //checks if the reader is ready and connects
+	IF RFID.xReady THEN
+		waitTimer1:=0.0;//waittimer is set to zero for each cycle
+		IO.xMB20:=FALSE;
+		RFID.Connect(usiNodeId:=32,usiNetworkId:=0,usiChannel:=1);
+		state := 2;
+	END_IF
+
+ 	2: //if ready it should show ready again
+	IF RFID.xReady THEN
+		IF TCPclient.xConnected AND TCPclient.xReady THEN //to move on the conncection is checked
+			state := 3;
+		END_IF
+	END_IF
+
+ 	3://waits for a pallet 
+	IF IO.xBG21 THEN 
+		state := 4;
+	END_IF
+
+ 	4: //Read RFID data of the pallet
+	RFID.ReadTag(uiStartAddress := 0, uiDataLength := SIZEOF(rfidData), ADR(rfidData));
+	state := 5;
+
+ 	5://wait for RFID read
+	IF RFID.xReady THEN
+		corrected_ID:=dc_ecp.SwapWORD(rfidData.uiCarrierID);//changes the pallet id to readable data
+		getDateTime.xExecute := TRUE;//gets the curret date and time
+		IF getDateTime.xDone THEN
+			DateTimemeasured := getDateTime.dtDateAndTime;
+		END_IF
+		//imputs it all into an xml string
+		xmlString:='<?xml version="1.0" encoding="UFT-8"><info><time>'+DT_TO_STRING(DateTimemeasured)+'</time><ID>'+INT_TO_STRING(corrected_ID)+'</ID></info>';
+		state :=10; 
+	END_IF
+
+ 	10:
+	IF IO.xBG21 = TRUE THEN//if the pallet is still there send data to the server
+		TCPclient.Send(pToSend:=ADR(xmlString),uiSizeToSend:=SIZEOF(xmlString));
+		state := 11;
+	END_IF
+ 	11://here the time is reacieved again and the pallet will wait the process time is too before the stopper goes down
+	IF TCPclient.xReady THEN
+		TCPclient.Receive(pToReceive:=ADR(received), uiSizeToReceive:=SIZEOF(received));
+	END_IF
+	waitTimer1:=BYTE_TO_REAL(received);//The data is converted to float so the time can be used in the next line
+ 	//Check if data is received
+	IF waitTimer1 > 0 THEN 
+		waitTimer2:=REAL_TO_TIME(waitTimer1);//The REAL value is converted to a TIME value
+		timer(IN:=TRUE, PT:=waitTimer2);//here the timer is created
+		state := 12;	
+	END_IF
+
+ 	12:
+	IF timer.Q = TRUE THEN //the time received is waited before the pallet is let go
+		timer(IN:=FALSE);
+		IO.xMB20:=TRUE;
+		state := 13;
+	END_IF
+
+ 	13:
+	timer(IN:=TRUE, PT:=T#2S); //a new timer is made for the pallet to pass through 
+ 	state :=14;
+
+ 	14:
+	IF timer.Q = TRUE THEN
+		timer(IN:=FALSE);
+		IO.xMB20:=FALSE;//the stopper is moved up again and the cyclus is repeated with the next pallet
+		state := 1;
+	END_IF
+
+END_CASE
+timer();
+RFID();
+TCPclient();
+getDateTime();
