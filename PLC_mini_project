@@ -29,7 +29,7 @@ CASE state OF
  	1: //checks if the reader is ready and connects
 	IF RFID.xReady THEN
 		waitTimer1:=0.0;//waittimer is set to zero for each cycle
-		IO.xMB20:=FALSE;
+		IO.xMB20:=FALSE;//stopper is set to stop
 		RFID.Connect(usiNodeId:=32,usiNetworkId:=0,usiChannel:=1);
 		state := 2;
 	END_IF
