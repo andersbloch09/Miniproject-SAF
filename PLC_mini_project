@@ -7,9 +7,6 @@ VAR
 	TCPclient: dc_ecp.TcpClientByteStream;
 	corrected_ID: UINT;
 	xmlString: STRING;
-	DateTimemeasured: DATE_AND_TIME;
-	getDateTime: DTU.GetDateAndTime;
-	DateTimeString: STRING;
 	timereceived: ARRAY[0..255] OF BYTE;
 	received: ARRAY[0..3]OF BYTE;
 	waitTimer1: REAL;
@@ -53,12 +50,8 @@ CASE state OF
  	5://wait for RFID read
 	IF RFID.xReady THEN
 		corrected_ID:=dc_ecp.SwapWORD(rfidData.uiCarrierID);//changes the pallet id to readable data
-		getDateTime.xExecute := TRUE;//gets the curret date and time
-		IF getDateTime.xDone THEN
-			DateTimemeasured := getDateTime.dtDateAndTime;
-		END_IF
 		//imputs it all into an xml string
-		xmlString:='<?xml version="1.0" encoding="UFT-8"><info><time>'+DT_TO_STRING(DateTimemeasured)+'</time><ID>'+INT_TO_STRING(corrected_ID)+'</ID></info>';
+		xmlString:='<?xml version="1.0" encoding="UFT-8"><info><ID>'+INT_TO_STRING(corrected_ID)+'</ID></info>';
 		state :=10; 
 	END_IF
 
