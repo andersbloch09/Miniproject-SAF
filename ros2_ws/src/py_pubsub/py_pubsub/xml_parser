@@ -1,0 +1,44 @@
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
+import xml.etree.ElementTree as ET
+
+class XMLPublisherNode(Node):
+
+    def __init__(self):
+        super().__init__('xml_publisher_node')
+        self.publisher_ = self.create_publisher(String, 'xml_data', 10)
+        timer_period = 2.0  # seconds
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.xml_file_path = '/path/to/your/xml/file.xml'
+
+    def timer_callback(self):
+        try:
+            tree = ET.parse(self.xml_file_path)
+            root = tree.getroot()
+            # Parse the XML data here and publish the results as a ROS2 message
+            xml_data = self.parse_xml_data(root)
+            msg = String()
+            msg.data = xml_data
+            self.publisher_.publish(msg)
+            self.get_logger().info('Publishing XML data: ' + xml_data)
+        except:
+            self.get_logger().error('Failed to parse XML file: ' + self.xml_file_path)
+
+    def parse_xml_data(self, root):
+        # Parse the XML data and return as a string
+        # This is just an example, you will need to modify this for your specific XML format
+        xml_data = ''
+        for child in root:
+            xml_data += child.tag + ': ' + child.text + '\n'
+        return xml_data
+
+def main(args=None):
+    rclpy.init(args=args)
+    xml_publisher_node = XMLPublisherNode()
+    rclpy.spin(xml_publisher_node)
+    xml_publisher_node.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
