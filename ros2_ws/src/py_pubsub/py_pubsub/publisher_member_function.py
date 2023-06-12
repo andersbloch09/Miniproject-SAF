@@ -71,7 +71,7 @@ def main(args=None):
         #Receive data from the client
         data = conn.recv(1024)
         xml_string_recv = int.from_bytes(data, byteorder="little")
-        
+        xml_string_recv = str(xml_string_recv)
         #xml_string = '<?xml version="1.0" encoding="uft-8"?><info><ID>'+'7'+'</ID></info>'
     
         file_path = "/home/anders/ros2_ws/src/py_pubsub/py_pubsub/time.xml"
