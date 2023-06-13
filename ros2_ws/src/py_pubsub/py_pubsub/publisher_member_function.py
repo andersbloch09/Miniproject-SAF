@@ -83,7 +83,7 @@ def main(args=None):
         id_value = parse_xml_data()
         process_time = search_csv(id_value)
         
-        if process_time == Node: 
+        if process_time == None: 
             print("error")
         else: 
             print(process_time[0])
