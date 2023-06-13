@@ -34,7 +34,7 @@ def search_csv(id_value):
                     matching_rows.append(row[col_index])
             return matching_rows
         except ValueError:
-            return None
+            print("error")
 
 def parse_xml_data():
         xml_file_path = '/home/anders/ros2_ws/src/py_pubsub/py_pubsub/time.xml'
