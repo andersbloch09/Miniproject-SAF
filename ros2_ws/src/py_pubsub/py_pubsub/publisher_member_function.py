@@ -94,8 +94,9 @@ def main(args=None):
 
             #Sends the time back to the PLC
             conn.send(process_time_measured.encode())
+
+            rclpy.spin_once(xml_publisher_node)
             
-        rclpy.spin_once(xml_publisher_node)
     xml_publisher_node.destroy_node()
     rclpy.shutdown()
 
