@@ -34,7 +34,7 @@ def search_csv(id_value):
                     matching_rows.append(row[col_index])
             return matching_rows
         except ValueError:
-            print("error")
+            return None
 
 def parse_xml_data():
         xml_file_path = '/home/anders/ros2_ws/src/py_pubsub/py_pubsub/time.xml'
@@ -82,16 +82,20 @@ def main(args=None):
     
         id_value = parse_xml_data()
         process_time = search_csv(id_value)
-        print(process_time[0])
         
-        process_time_measured = process_time[0]
+        if process_time == Node: 
+            print("error")
+        else: 
+            print(process_time[0])
 
-        xml_publisher_node.result.data = id_value
-        
-        #Sends the time back to the PLC
-        conn.send(process_time_measured.encode())
+            process_time_measured = process_time[0]
+
+            xml_publisher_node.result.data = id_value
+
+            #Sends the time back to the PLC
+            conn.send(process_time_measured.encode())
+            
         rclpy.spin_once(xml_publisher_node)
-    
     xml_publisher_node.destroy_node()
     rclpy.shutdown()
 
